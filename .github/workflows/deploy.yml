@@ -1,0 +1,44 @@
+name: Deploy Worker
+
+on:
+  push:
+    branches:
+      - main # 如果你的主分支叫 master，请改为 master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 🌟 核心解决步骤：在云端安装 pnpm
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9 # 这里指定 pnpm 的大版本，通常 8 或 9 都可以
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # 如果你的 package.json 在子目录（比如 mail-vue）里，请取消下面两行的注释（删除 #），并将路径改对：
+      # defaults:
+        
+      - name: Install dependencies
+        run: |
+          cd ./mail-vue
+          pnpm install
+
+      - name: Build project
+        run: |
+          cd ./mail-vue
+          pnpm run build
+
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          workingDirectory: 'mail-worker'
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
